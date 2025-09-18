@@ -217,9 +217,10 @@ stopwaitsecs=3600
 ```
 
 ### Menjalankan Supervisor
-sudo supervisorctl reread
-sudo supervisorctl update
-sudo supervisorctl start laravel-queue:*
+
+- sudo supervisorctl reread
+- sudo supervisorctl update
+- sudo supervisorctl start laravel-queue:*
 
 ## Lisensi
 
