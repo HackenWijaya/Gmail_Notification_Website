@@ -1,0 +1,166 @@
+version: '3.8'
+
+services:
+  # Web Application Container (Nginx + PHP-FPM)
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: app
+    container_name: jobapplier_web
+    restart: unless-stopped
+    working_dir: /mnt/d/jobapplier
+    volumes:
+      - ./:/mnt/d/jobapplier
+      - ./docker/nginx/default.conf:/etc/nginx/http.d/default.conf
+      - ./docker/supervisor/supervisord.conf:/etc/supervisord.conf
+      - ./docker/supervisor/web.conf:/etc/supervisor/conf.d/web.conf
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - APP_KEY=base64:uFWCWE8rPmi957kk6Gjkz15p2maEgsgcQas6u8Y+Cpc=
+      - APP_URL=http://localhost:8000
+      - DB_CONNECTION=pgsql
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_DATABASE=laravel_queue
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=hacken123
+      - MAIL_MAILER=smtp
+      - MAIL_HOST=smtp.gmail.com
+      - MAIL_PORT=587
+      - MAIL_USERNAME=wijayahacken@gmail.com
+      - MAIL_PASSWORD=qord tefd fsvh dplb
+      - MAIL_ENCRYPTION=tls
+      - MAIL_FROM_ADDRESS=wijayahacken@gmail.com
+      - MAIL_FROM_NAME=Aplikasi
+      - QUEUE_CONNECTION=database
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - jobapplier_network
+    ports:
+      - "8000:80"
+    command: [ "web" ]
+
+  # Queue Worker Container (Separate)
+  queue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: app
+    container_name: jobapplier_queue
+    restart: unless-stopped
+    working_dir: /mnt/d/jobapplier
+    volumes:
+      - ./:/mnt/d/jobapplier
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - APP_KEY=base64:uFWCWE8rPmi957kk6Gjkz15p2maEgsgcQas6u8Y+Cpc=
+      - DB_CONNECTION=pgsql
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_DATABASE=laravel_queue
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=hacken123
+      - MAIL_MAILER=smtp
+      - MAIL_HOST=smtp.gmail.com
+      - MAIL_PORT=587
+      - MAIL_USERNAME=wijayahacken@gmail.com
+      - MAIL_PASSWORD=qord tefd fsvh dplb
+      - MAIL_ENCRYPTION=tls
+      - MAIL_FROM_ADDRESS=wijayahacken@gmail.com
+      - MAIL_FROM_NAME=Aplikasi
+      - QUEUE_CONNECTION=database
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - jobapplier_network
+    command: [ "queue" ]
+
+  # PostgreSQL Database Container
+  postgres:
+    image: postgres:15-alpine
+    container_name: jobapplier_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: laravel_queue
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: hacken123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    networks:
+      - jobapplier_network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      timeout: 20s
+      retries: 10
+
+  # Redis Cache Container
+  redis:
+    image: redis:7-alpine
+    container_name: jobapplier_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - jobapplier_network
+    command: redis-server --appendonly yes
+
+  # Scheduler Container (Optional - for cron jobs)
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: app
+    container_name: jobapplier_scheduler
+    restart: unless-stopped
+    working_dir: /mnt/d/jobapplier
+    volumes:
+      - ./:/mnt/d/jobapplier
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - APP_KEY=base64:uFWCWE8rPmi957kk6Gjkz15p2maEgsgcQas6u8Y+Cpc=
+      - DB_CONNECTION=pgsql
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_DATABASE=laravel_queue
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=hacken123
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - jobapplier_network
+    command: >
+      sh -c "while true; do
+        php artisan schedule:run --verbose --no-interaction
+        sleep 60
+      done"
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  jobapplier_network:
+    driver: bridge
