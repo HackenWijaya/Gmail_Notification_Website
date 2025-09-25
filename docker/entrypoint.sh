@@ -3,7 +3,7 @@ set -euo pipefail
 
 role=${1:-app}
 
-cd /mnt/d/jobapplier
+cd /var/www
 
 # Ensure composer deps
 if [ ! -d vendor ]; then
@@ -42,11 +42,11 @@ php artisan migrate --force || true
 case "$role" in
   supervisor)
     echo "Starting Supervisor (php-fpm + queue worker)..."
-    exec /usr/bin/supervisord -n -c /etc/supervisord.conf
+    exec /usr/bin/supervisord -n -c /etc/supervisor/supervisord.conf
     ;;
   web)
     echo "Starting Supervisor (php-fpm only)..."
-    exec /usr/bin/supervisord -n -c /etc/supervisord.conf
+    exec /usr/bin/supervisord -n -c /etc/supervisor/supervisord.conf
     ;;
   app)
     echo "Starting PHP-FPM only..."
@@ -54,7 +54,7 @@ case "$role" in
     ;;
   queue)
     echo "Starting Queue Worker..."
-    exec php artisan queue:work --sleep=1 --tries=3 --timeout=90
+    exec php /var/www/artisan queue:work --sleep=1 --tries=3 --timeout=90
     ;;
   *)
     exec "$@"

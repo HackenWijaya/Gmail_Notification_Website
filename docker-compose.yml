@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: jobapplier_app
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./:/var/www
+    networks:
+      - jobapplier
+    depends_on:
+      - db
+    entrypoint: [ "/var/www/docker/entrypoint.sh", "supervisor" ]
+
+  webserver:
+    image: nginx:alpine
+    container_name: jobapplier_webserver
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - ./:/var/www
+      - ./docker/nginx:/etc/nginx/conf.d
+    networks:
+      - jobapplier
+    depends_on:
+      - app
+
+  db:
+    image: postgres:13
+    container_name: jobapplier_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: laravel_queue
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: hacken123
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - jobapplier
+
+networks:
+  jobapplier:
+    driver: bridge
+
+volumes:
+  db_data:
+    driver: local

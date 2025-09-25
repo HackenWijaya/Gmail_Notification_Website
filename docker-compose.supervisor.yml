@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  app:
+    # Use the supervisor role to start both PHP-FPM and the queue worker
+    entrypoint: ["/var/www/docker/entrypoint.sh", "supervisor"]
+    # Remove the separate queue service since we're using Supervisor now
+    # The queue worker will run as a process managed by Supervisor in the app container
+
+  queue:
+    # Keep this service definition but don't start it by default
+    # This allows us to start it separately if needed for testing
+    scale: 0  # This effectively disables the service without removing it
