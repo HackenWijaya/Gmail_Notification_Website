@@ -194,6 +194,34 @@ php artisan queue:work
 
 ---
 
+## Supervisor (Opsional – Untuk Queue Otomatis)
+
+Jika Anda tidak ingin selalu menjalankan `php artisan queue:work` manual, gunakan **Supervisor**. Supervisor akan otomatis menjalankan worker Laravel dan dapat mengelola beberapa queue sekaligus.
+
+### Konfigurasi Supervisor
+
+File konfigurasi biasanya di:
+docker/supervisor/queue.conf
+Contoh konfigurasi:
+```ini
+[program:laravel-queue]
+process_name=%(program_name)s_%(process_num)02d
+command=php /mnt/d/jobapplier/artisan queue:work --sleep=3 --tries=3
+autostart=true
+autorestart=true
+numprocs=1
+user=www-data
+redirect_stderr=true
+stdout_logfile=/mnt/d/jobapplier/storage/logs/queue.log
+stopwaitsecs=3600
+```
+
+### Menjalankan Supervisor
+
+- sudo supervisorctl reread
+- sudo supervisorctl update
+- sudo supervisorctl start laravel-queue:*
+
 ## Lisensi
 
 Proyek ini berada di atas kerangka kerja Laravel (MIT). Konten aplikasi spesifik lisensinya mengikuti preferensi pemilik repositori.
